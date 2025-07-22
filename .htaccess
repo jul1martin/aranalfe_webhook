@@ -1,0 +1,26 @@
+# Denegar acceso a archivos sensibles
+<Files "credenciales.json">
+    Deny from all
+</Files>
+
+<Files ".env">
+    Deny from all
+</Files>
+
+<Files "*.log">
+    Deny from all
+</Files>
+
+# Denegar acceso a directorios de logs
+<Directory "log_inputs">
+    Deny from all
+</Directory>
+
+<Directory "log_fails">
+    Deny from all
+</Directory>
+
+# Denegar acceso a vendor
+<Directory "vendor">
+    Deny from all
+</Directory>

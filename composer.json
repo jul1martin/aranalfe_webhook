@@ -1,0 +1,8 @@
+{
+    "require": {
+        "google/apiclient": "^2.0",
+        "monolog/monolog": "^2.9",
+        "symfony/deprecation-contracts": "^2.5",
+        "vlucas/phpdotenv": "^5.0"
+    }
+}
