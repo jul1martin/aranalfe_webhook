@@ -3,7 +3,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 try {
      // Cargar variables de entorno
-     $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2));
+     $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2) . '/secret_tokko_webhook');
      $dotenv->load();
 
      $input = file_get_contents('php://input');
@@ -75,7 +75,7 @@ try {
 
      // Configurar Google Client
      $client = new Google_Client();
-     $client->setAuthConfig(dirname(__DIR__, 2) . '/credenciales.json');
+     $client->setAuthConfig(dirname(__DIR__, 2) . '/secret_tokko_webhook/credenciales.json');
      $client->addScope([
           Google_Service_Sheets::SPREADSHEETS,
           Google_Service_Drive::DRIVE
