@@ -1,6 +1,70 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
+/*
+PROPIEDADES
 
+ver si pinta una fotovich
+created_at
+tokko id
+public_url
+type.name
+ $property_types = [
+    1 => 'Terreno',
+    2 => 'Departamento', 
+    3 => 'Casa',
+    5 => 'Oficina',
+    7 => 'Local',
+    8 => 'Edificio Comercial',
+    10 => 'Cochera',
+    11 => 'Hotel',
+    13 => 'PH',
+    14 => 'Depósito',
+    24 => 'Galpón'
+];
+Operaciones string
+valor venta 
+valor alquiler
+development -> Si tiene dev.name - dev.id
+address
+total_surface
+location.name
+
+CONTACTOS
+created_at
+tokko_id
+name
+email || other_email
+cellphone || other_phone
+lead_status
+agent.name
+tags for each tag.name
+
+
+DEVELOPMENT
+
+id
+name
+web_url
+type
+$development_types = [
+    1 => 'Edificio de oficinas',
+    2 => 'Edificio',
+    3 => 'Country', 
+    4 => 'Barrio Privado',
+    5 => 'Náutico',
+    6 => 'Rural',
+    7 => 'Edificio de Cocheras',
+    8 => 'Condominio Industrial',
+    9 => 'Centro Logístico',
+    10 => 'Condominio',
+    11 => 'Otro',
+    12 => 'Comercial',
+    13 => 'Hotel',
+    14 => 'Barrio Abierto'
+];
+
+
+*/
 try {
      // Cargar variables de entorno
      $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2) . '/secret_tokko_webhook');
@@ -96,11 +160,12 @@ try {
      echo json_encode(['status' => 'ok']);
 } catch (Exception $e) {
      // Loguear error en archivo del día
+     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+
      $day = date('d');
      $errorLogFile = "log_fails/day_{$day}.log";
      file_put_contents($errorLogFile, date('Y-m-d H:i:s') . " - Error: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
      
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }
 
 function getProperty($id, $apiKey) {
@@ -109,15 +174,62 @@ function getProperty($id, $apiKey) {
 
      if(!$data) return $body;
 
+     $types = [
+          1 => 'Terreno',
+          2 => 'Departamento', 
+          3 => 'Casa',
+          5 => 'Oficina',
+          7 => 'Local',
+          8 => 'Edificio Comercial',
+          10 => 'Cochera',
+          11 => 'Hotel',
+          13 => 'PH',
+          14 => 'Depósito',
+          24 => 'Galpón'
+     ];
+
+     $operations = $data['operations'] ?? [];
+
+     $operationString = '';
+     $salePrice = 0;
+     $rentalPrice = 0;
+
+     foreach($operations as $operation) {
+          $translate = [
+               "Rent" => "Alquiler",
+               "Sell" => "Venta",
+               // alq temporario?
+          ];
+
+          $operationString .= ($operationString ? ' - ' : '') . $translate[$operation['operation_type']];
+
+          $price = $operation['prices'][0]['price'] ?? 0;
+          
+          if($operation['operation_type'] == 'Sell') {
+               $salePrice = $price;
+          } else if($operation['operation_type'] == 'Rent') {
+               $rentalPrice = $price;
+          }
+     }
+
+     $id = $data['id'];
+
      $body = [
-          'id' => $data['id'],
-          'Ref Code' => $data['id'],
-          'Address' => $data['address'],
-          'Tags' => implode(', ', $data['custom_tags']),
+          'created_at' => $data['created_at'],
+          'tokko_id' => urlForExcel("https://www.tokkobroker.com/property/{$id}", $id),
+          'public_url' => urlForExcel("https://aranalfe.com/propiedad/?id={$id}"),
+          'type_name' => isset($data['type']['id']) ? ($types[$data['type']['id']] ?? $data['type']['name']) : '',
+          'operaciones' => $operationString,
+          'valor_venta' => $salePrice,
+          'valor_alquiler' => $rentalPrice,
+          'development' => isset($data['development']) ? $data['development']['name'] . ' (' . $data['development']['id'] . ')' : '',
+          'address' => $data['address'],
+          'location_name' => $data['location']['name'] ?? '',
+          'total_surface' => $data['total_surface']
      ];
 
      return [
-          "sheet" => array_values($body),
+          "sheet" => $body,
           "page" => "Propiedades"
      ];
 }
@@ -128,15 +240,36 @@ function getDevelopment($id, $apiKey) {
 
      if(!$data) return $body;
 
+     $types = [
+          1 => 'Edificio de oficinas',
+          2 => 'Edificio',
+          3 => 'Country', 
+          4 => 'Barrio Privado',
+          5 => 'Náutico',
+          6 => 'Rural',
+          7 => 'Edificio de Cocheras',
+          8 => 'Condominio Industrial',
+          9 => 'Centro Logístico',
+          10 => 'Condominio',
+          11 => 'Otro',
+          12 => 'Comercial',
+          13 => 'Hotel',
+          14 => 'Barrio Abierto'
+     ];
+
+     $id = $data['id'];
+     
      $body = [
-          'id' => $data['id'],
-          'Ref Code' => $data['id'],
-          'Address' => $data['address'],
-          'Name' => $data['name'],
+          'tokko_id' => urlForExcel("https://www.tokkobroker.com/development/{$id}", $id),
+          'name' => $data['name'],
+          'web_url' => urlForExcel("https://aranalfe.com/emprendimiento/?id={$id}"),
+          'type' => isset($data['type']) ? ($types[$data['type']['id']] ?? $data['type']['name']) : '',
+          'address' => $data['address'],
+          'location_name' => $data['location']['name'] ?? ''
      ];
 
      return [
-          "sheet" => array_values($body),
+          "sheet" => $body,
           "page" => "Desarrollos"
      ];
 }
@@ -147,16 +280,27 @@ function getContact($id, $apiKey) {
 
      if(!$data) return $body;
 
+     $tags = [];
+     if (isset($data['tags']) && is_array($data['tags'])) {
+          foreach ($data['tags'] as $tag) {
+               $tags[] = $tag['name'];
+          }
+     }
+     $tags_string = implode(", ", $tags);
+
      $body = [
-          'ID' => $data['id'],
-          'Agent' => $data['agent'] ? $data['agent']['name'] : '',
-          'Name' => $data['name'],
-          'Email' => $data['email'],
-          'Phone' => $data['phone'],
+          'created_at' => date('d/m/Y H:i', strtotime($data['created_at'])),
+          'tokko_id' => urlForExcel("https://www.tokkobroker.com/contact/{$data['id']}", $data['id']),
+          'name' => $data['name'],
+          'email' => $data['email'] ?? $data['other_email'] ?? '',
+          'cellphone' => $data['cellphone'] ?? $data['other_phone'] ?? '',
+          'lead_status' => $data['lead_status'],
+          'agent_name' => $data['agent'] ? $data['agent']['name'] : '',
+          'tags' => $tags_string
      ];
 
      return [
-          "sheet" => array_values($body),
+          "sheet" => $body,
           "page" => "Contactos"
      ];
 }
@@ -177,4 +321,8 @@ function getTokko($resource, $id, $apiKey) {
      }
      
      return json_decode($response, true);
+}
+
+function urlForExcel($url, $text = 'VER') {
+     return "=HYPERLINK(\"{$url}\", \"{$text}\")";
 }
