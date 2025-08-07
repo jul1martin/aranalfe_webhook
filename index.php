@@ -6,46 +6,6 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2) . '/secret_tokko_webhook');
 $dotenv->load();
 
-function getDevelopment($id) {
-     $data = getTokko('development', $id);
-     $body = [];
-
-     if(!$data) return $body;
-
-     $types = [
-          1 => 'Edificio de oficinas',
-          2 => 'Edificio',
-          3 => 'Country', 
-          4 => 'Barrio Privado',
-          5 => 'Náutico',
-          6 => 'Rural',
-          7 => 'Edificio de Cocheras',
-          8 => 'Condominio Industrial',
-          9 => 'Centro Logístico',
-          10 => 'Condominio',
-          11 => 'Otro',
-          12 => 'Comercial',
-          13 => 'Hotel',
-          14 => 'Barrio Abierto'
-     ];
-
-     $id = $data['id'];
-     
-     $body = [
-          'tokko_id' => urlForExcel("https://www.tokkobroker.com/development/{$id}", $id),
-          'name' => $data['name'],
-          'web_url' => urlForExcel("https://aranalfe.com/emprendimiento/?id={$id}"),
-          'type' => isset($data['type']) ? ($types[$data['type']['id']] ?? $data['type']['name']) : '',
-          'address' => $data['address'],
-          'location_name' => $data['location']['name'] ?? ''
-     ];
-
-     return [
-          "sheet" => $body,
-          "page" => "Desarrollos"
-     ];
-}
-
 function getTokko($resource, $id, $urlParams = null) {
      $apiKey = $_ENV['TOKKO_API_KEY'];
 
