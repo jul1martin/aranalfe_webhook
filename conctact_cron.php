@@ -28,6 +28,8 @@ try {
 
           ["objects" => $contacts] = getTokko('contact', $apiKey, $urlParams);
 
+       	  echo "Propiedades encontradas en el get con offset {$offset}: " . count($contacts) . PHP_EOL;
+
           if(empty($contacts)) {
                $keepSearching = false;
                continue;
@@ -35,19 +37,22 @@ try {
 
           foreach($contacts as $contact) {
                $createdAt = $contact['created_at'];
-               var_dump($createdAt);
 
                $sheetData = getContact($contact);
                $toSheet[] = array_values($sheetData['sheet']);
           
-               echo "Preparando datos de " . $contact['id'] . " para enviar a Google Sheets\n";
+               echo 'Preparando datos de ' . $contact['id'] . ' para enviar a Google Sheets ' . PHP_EOL;
           }
 
           $offset += $limit;
      }
 
-     if (!empty($toSheet)) {
-          appendToGoogleSheet($toSheet, 'Contactos');
+     echo "\n Cantidad de elementos que van a sheets: " . count($toSheet) . " \n";
+  
+  	 if (!empty($toSheet)) {
+          $status = appendToGoogleSheet($toSheet, 'Contactos');
+     		
+          echo "Estado del envio: " ($status ? "Enviado" : "Error al enviar");
      }
 
      echo "Ejecutado correctamente";

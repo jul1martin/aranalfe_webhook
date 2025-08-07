@@ -27,15 +27,17 @@ try {
           $urlParams = 'lang=es_ar&order_by=created_at&format=json&limit=' . $limit . '&offset=' . $offset . '&data=%7B%22current_localization_id%22%3A0%2C%22current_localization_type%22%3A%22country%22%2C%22price_from%22%3A1%2C%22price_to%22%3A999999999%2C%22operation_types%22%3A%5B1%2C2%5D%2C%22property_types%22%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%2C13%2C14%2C15%2C16%2C17%2C18%2C19%2C20%2C21%2C22%2C23%2C24%2C25%2C26%2C27%2C28%5D%2C%22currency%22%3A%22USD%22%2C%22filters%22%3A%5B%5B%22total_surface%22%2C%22%3E%22%2C1%5D%2C%5B%22total_surface%22%2C%22%3C%22%2C999999999%5D%5D%2C%22with_tags%22%3A%5B%5D%7D&order=desc';
 
           ["objects" => $properties] = getTokko('property/search', $apiKey, $urlParams);
-
-          if(empty($properties)) {
+       
+          echo "Propiedades encontradas en el get con offset {$offset}: " . count($properties);
+          
+       	  if(empty($properties)) {
                $keepSearching = false;
                continue;
           }
 
           foreach($properties as $property) {
                $createdAt = $property['created_at'];
-
+            
                if($createdAt > date('Y-m-d 00:00:00', strtotime('-1 day'))) {
                     $sheetData = getProperty($property['id']);
                     $toSheet[] = array_values($sheetData['sheet']);
