@@ -23,7 +23,7 @@ try {
 
      $toSheet = [];
      
-     while($keepSearching) {
+     while($keepSearching && $offset < 201) {
           $urlParams = 'order_by=-id&format=json&limit=' . $limit . '&offset=' . $offset;
 
           ["objects" => $developments] = getTokko('development', $apiKey, $urlParams);
