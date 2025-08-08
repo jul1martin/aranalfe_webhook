@@ -23,7 +23,7 @@ try {
 
      $toSheet = [];
      
-     while($keepSearching && $offset < 201) {
+     while($keepSearching && $offset < 101) {
           $urlParams = 'limit=' . $limit . '&offset=' . $offset . '&format=json&key=fad0d191d200804e836be0b26626ac919fa37e8a&created_at__gte=' . date('Y-m-d 00:00:00', strtotime('-1 day')) . '&created_at__lte=' . date('Y-m-d 23:59:59', strtotime('-1 day'));
 
           ["objects" => $contacts] = getTokko('contact', $apiKey, $urlParams);
