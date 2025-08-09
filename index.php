@@ -4,13 +4,17 @@ require __DIR__ . '/vendor/autoload.php';
 
 // Cargar variables de entorno
 $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__, 2) . '/secret_tokko_webhook');
+
+// local
+// $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+
 $dotenv->load();
 
-function getTokko($resource, $id, $urlParams = null) {
+function getTokko($resource, $urlParams = null) {
      $apiKey = $_ENV['TOKKO_API_KEY'];
 
-     $url = "https://www.tokkobroker.com/api/v1/{$resource}" . ($id ? "/" . $id : "") . "?format=json&key={$apiKey}" . ($urlParams ? '&' . $urlParams : '');
-
+     $url = "https://www.tokkobroker.com/api/v1/{$resource}?key={$apiKey}" . ($urlParams ? '&' . $urlParams : '');
+     
      $context = stream_context_create([
           'http' => [
                'ignore_errors' => true
@@ -28,6 +32,7 @@ function getTokko($resource, $id, $urlParams = null) {
                if (strpos($http_response_header[0], '404') !== false) {
                     return null;
                }
+
                return json_decode($response, true);
           }
 
@@ -51,6 +56,10 @@ function appendToGoogleSheet($sheetData, $page) {
           // Configurar Google Client
           $client = new Google_Client();
           $client->setAuthConfig(dirname(__DIR__, 2) . '/secret_tokko_webhook/credenciales.json');
+          
+          // LOCAL
+          // $client->setAuthConfig(__DIR__ . '/credenciales.json');
+
           $client->addScope([
                Google_Service_Sheets::SPREADSHEETS,
                Google_Service_Drive::DRIVE

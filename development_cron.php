@@ -22,30 +22,33 @@ try {
      $keepSearching = true;
 
      $toSheet = [];
-     
-     while($keepSearching && $offset < 101) {
-          $urlParams = 'order_by=-id&format=json&limit=' . $limit . '&offset=' . $offset;
 
-          ["objects" => $developments] = getTokko('development', $apiKey, $urlParams);
+     $oldLastId = getLastIdChecked();
+     $lastId = $oldLastId;
+     
+     // Limito a 3 ejecuciones a la api de Tokko
+     while($keepSearching && $offset < 61) {
+          $urlParams = 'order_by=id&id__gt=' . $oldLastId . '&limit=' . $limit . '&offset=' . $offset;
+
+          ["objects" => $developments] = getTokko('development', $urlParams);
        
-          echo "Desarrollos encontrados en el get con offset {$offset}: " . count($developments);
-          
        	if(empty($developments)) {
                $keepSearching = false;
                continue;
           }
 
+          echo "Desarrollos encontrados en el get con offset {$offset}: " . count($developments);
+
           foreach($developments as $development) {
-               $deletedAt = $development['deleted_at'];
+               $id = $development['id'];
             
-               if($deletedAt > date('Y-m-d 00:00:00', strtotime('-1 day'))) {
-                    $sheetData = getDevelopment($development);
-                    $toSheet[] = array_values($sheetData['sheet']);
-               
-                    echo "Preparando datos de " . $development['id'] . " para enviar a Google Sheets\n";
-               } else {
-                    $keepSearching = false;
-                    break;
+               $sheetData = getDevelopment($development);
+               $toSheet[] = array_values($sheetData['sheet']);
+          
+               echo "Preparando datos de " . $id . " para enviar a Google Sheets\n";
+
+               if($id > $lastId) {
+                    $lastId = $id;
                }
           }
 
@@ -55,6 +58,8 @@ try {
      if (!empty($toSheet)) {
           appendToGoogleSheet($toSheet, 'Desarrollos');
      }
+
+     setLastIdChecked($lastId);
 
      echo "Ejecutado correctamente";
 } catch (Exception $e) {
@@ -87,7 +92,7 @@ function getDevelopment($data) {
      $id = $data['id'];
      
      $body = [
-          'deleted_at' => $data['deleted_at'],
+          'created_at' => date('m/d/Y H:i:00', strtotime($data['deleted_at'])),
           'tokko_id' => urlForExcel("https://www.tokkobroker.com/development/{$id}", $id),
           'name' => $data['name'],
           'web_url' => urlForExcel("https://aranalfe.com/emprendimiento/?id={$id}"),
@@ -100,4 +105,19 @@ function getDevelopment($data) {
           "sheet" => $body,
           "page" => "Desarrollos"
      ];
+}
+
+function getLastIdChecked() {
+     $file = 'last_development_id';
+
+     if(!file_exists($file)) {
+          file_put_contents($file, '0');
+     }
+
+     return file_get_contents($file);
+}
+
+function setLastIdChecked($id) {
+     $file = 'last_development_id';
+     file_put_contents($file, $id);
 }

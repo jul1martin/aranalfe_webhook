@@ -23,29 +23,38 @@ try {
 
      $toSheet = [];
      
-     while($keepSearching && $offset < 101) {
-          $urlParams = 'lang=es_ar&order_by=created_at&format=json&limit=' . $limit . '&offset=' . $offset . '&data=%7B%22current_localization_id%22%3A0%2C%22current_localization_type%22%3A%22country%22%2C%22price_from%22%3A1%2C%22price_to%22%3A999999999%2C%22operation_types%22%3A%5B1%2C2%5D%2C%22property_types%22%3A%5B1%2C2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%2C13%2C14%2C15%2C16%2C17%2C18%2C19%2C20%2C21%2C22%2C23%2C24%2C25%2C26%2C27%2C28%5D%2C%22currency%22%3A%22USD%22%2C%22filters%22%3A%5B%5B%22total_surface%22%2C%22%3E%22%2C1%5D%2C%5B%22total_surface%22%2C%22%3C%22%2C999999999%5D%5D%2C%22with_tags%22%3A%5B%5D%7D&order=desc';
+     $oldLastId = getLastIdChecked();
+     $lastId = $oldLastId;
 
-          ["objects" => $properties] = getTokko('property/search', $apiKey, $urlParams);
-       
-          echo "Propiedades encontradas en el get con offset {$offset}: " . count($properties);
-          
-       	  if(empty($properties)) {
+     // Limito a 10 ejecuciones a la api de Tokko
+     while($keepSearching && $offset < 101) {
+          $urlParams = 'order_by=deleted_at&id__gt=' . $oldLastId . '&limit=' . $limit . '&offset=' . $offset;
+
+          ["objects" => $properties] = getTokko('property', $urlParams);
+
+          if(empty($properties)) {
                $keepSearching = false;
                continue;
           }
 
+          echo "Propiedades encontradas en el get con offset {$offset}: " . count($properties);
+
           foreach($properties as $property) {
                $createdAt = $property['created_at'];
-            
-               if($createdAt > date('Y-m-d 00:00:00', strtotime('-1 day'))) {
-                    $sheetData = getProperty($property['id']);
+               $id = $property['id'];
+
+               $sheetData = getProperty($property);
+
+               if(!empty($sheetData['sheet'])) {
                     $toSheet[] = array_values($sheetData['sheet']);
                
                     echo "Preparando datos de " . $property['id'] . " para enviar a Google Sheets\n";
+
+                    if($id > $lastId) {
+                         $lastId = $id;
+                    }
                } else {
-                    $keepSearching = false;
-                    break;
+                    echo "No se encontraron datos para la propiedad " . $property['id'] . "\n";
                }
           }
 
@@ -55,6 +64,8 @@ try {
      if (!empty($toSheet)) {
           appendToGoogleSheet($toSheet, 'Propiedades');
      }
+
+     setLastIdChecked($lastId);
 
      echo "Ejecutado correctamente";
 } catch (Exception $e) {
@@ -66,12 +77,7 @@ try {
      file_put_contents($errorLogFile, date('Y-m-d H:i:s') . " - Error: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
 }
 
-function getProperty($id) {
-     $data = getTokko('property', $id);
-     $body = [];
-
-     if(!$data) return $body;
-
+function getProperty($data) {
      $types = [
           1 => 'Terreno',
           2 => 'Departamento', 
@@ -95,7 +101,7 @@ function getProperty($id) {
      foreach($operations as $operation) {
           $translate = [
                "Rent" => "Alquiler",
-               "Sell" => "Venta",
+               "Sale" => "Venta",
                // alq temporario?
           ];
 
@@ -103,7 +109,7 @@ function getProperty($id) {
 
           $price = $operation['prices'][0]['price'] ?? 0;
           
-          if($operation['operation_type'] == 'Sell') {
+          if($operation['operation_type'] == 'Sale') {
                $salePrice = $price;
           } else if($operation['operation_type'] == 'Rent') {
                $rentalPrice = $price;
@@ -113,7 +119,7 @@ function getProperty($id) {
      $id = $data['id'];
 
      $body = [
-          'created_at' => $data['created_at'],
+          'created_at' => date('m/d/Y H:i:00', strtotime($data['created_at'])),
           'tokko_id' => urlForExcel("https://www.tokkobroker.com/property/{$id}", $id),
           'public_url' => urlForExcel("https://aranalfe.com/propiedad/?id={$id}"),
           'type_name' => isset($data['type']['id']) ? ($types[$data['type']['id']] ?? $data['type']['name']) : '',
@@ -132,3 +138,15 @@ function getProperty($id) {
      ];
 }
 
+function getLastIdChecked() {
+     $file = 'last_prop_id';
+
+     if(!file_exists($file)) {
+          file_put_contents($file, '0');
+     }
+     return file_get_contents($file);
+}
+
+function setLastIdChecked($id) {   
+     file_put_contents('last_prop_id', $id);
+}

@@ -1,5 +1,8 @@
 # Dependencias de Composer
 vendor/
 
+# Credenciales de Google Sheets
+credenciales.json
+
 # Variables de entorno
 .env

@@ -23,17 +23,18 @@ try {
 
      $toSheet = [];
      
-     while($keepSearching && $offset < 101) {
-          $urlParams = 'limit=' . $limit . '&offset=' . $offset . '&format=json&key=fad0d191d200804e836be0b26626ac919fa37e8a&created_at__gte=' . date('Y-m-d 00:00:00', strtotime('-1 day')) . '&created_at__lte=' . date('Y-m-d 23:59:59', strtotime('-1 day'));
+     // Limito a 20 ejecuciones a la api de Tokko
+     while($keepSearching && $offset < 201) {
+          $urlParams = 'limit=' . $limit . '&offset=' . $offset . '&order_by=created_at&created_at__gte=' . date('Y-m-d', strtotime('-1 day')) . '&created_at__lte=' . date('Y-m-d');
 
-          ["objects" => $contacts] = getTokko('contact', $apiKey, $urlParams);
-
-       	  echo "Propiedades encontradas en el get con offset {$offset}: " . count($contacts) . PHP_EOL;
+          ["objects" => $contacts] = getTokko('contact', $urlParams);
 
           if(empty($contacts)) {
                $keepSearching = false;
                continue;
           }
+
+          echo "Propiedades encontradas en el get con offset {$offset}: " . count($contacts) . PHP_EOL;
 
           foreach($contacts as $contact) {
                $createdAt = $contact['created_at'];
@@ -52,7 +53,7 @@ try {
   	 if (!empty($toSheet)) {
           $status = appendToGoogleSheet($toSheet, 'Contactos');
      		
-          echo "Estado del envio: " ($status ? "Enviado" : "Error al enviar");
+          echo "Estado del envio: " . ($status ? "Enviado" : "Error al enviar");
      }
 
      echo "Ejecutado correctamente";
@@ -79,7 +80,7 @@ function getContact($data) {
      $tags_string = implode(", ", $tags);
 
      $body = [
-          'created_at' => date('d/m/Y H:i', strtotime($data['created_at'])),
+          'created_at' => date('m/d/Y H:i:00', strtotime($data['created_at'])),
           'tokko_id' => urlForExcel("https://www.tokkobroker.com/contact/{$data['id']}", $data['id']),
           'name' => $data['name'],
           'email' => $data['email'] ?? $data['other_email'] ?? '',
