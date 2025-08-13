@@ -118,6 +118,18 @@ function getProperty($data) {
 
      $id = $data['id'];
 
+     $ownerNames = '';
+
+     if(!empty($data['internal_data']['property_owners'])) {
+          foreach($data['internal_data']['property_owners'] as $key => $propertyOwner) {
+               $ownerNames .= $propertyOwner['name'];
+
+               if($key < count($data['internal_data']['property_owners']) - 1) {
+                    $ownerNames .= ', ';
+               }
+          }
+     }
+     
      $body = [
           'created_at' => date('m/d/Y H:i:00', strtotime($data['created_at'])),
           'tokko_id' => urlForExcel("https://www.tokkobroker.com/property/{$id}", $id),
@@ -129,6 +141,7 @@ function getProperty($data) {
           'development' => isset($data['development']) ? $data['development']['name'] . ' (' . $data['development']['id'] . ')' : '',
           'address' => $data['address'],
           'location_name' => $data['location']['name'] ?? '',
+          'owner_names' => $ownerNames,
           'total_surface' => $data['total_surface']
      ];
 
