@@ -22,6 +22,7 @@ try {
      $keepSearching = true;
 
      $toSheet = [];
+     $toSheetOwners = [];
      
      $oldLastId = getLastIdChecked();
      $lastId = $oldLastId;
@@ -56,13 +57,27 @@ try {
                } else {
                     echo "No se encontraron datos para la propiedad " . $property['id'] . "\n";
                }
+
+               if(!empty($sheetData['sheetOwners'])) {
+                    foreach($sheetData['sheetOwners'] as $sheetOwner) {
+                         $toSheetOwners[] = $sheetOwner;
+                    }
+               }
           }
 
           $offset += $limit;
      }
 
      if (!empty($toSheet)) {
-          appendToGoogleSheet($toSheet, 'Propiedades');
+          // Sanitizar datos antes de enviar a Google Sheets
+          $sanitizedProperties = array_map('sanitizeArrayForGoogleSheets', $toSheet);
+          appendToGoogleSheet($sanitizedProperties, 'Propiedades');
+     }
+
+     if (!empty($toSheetOwners)) {
+          // Sanitizar datos antes de enviar a Google Sheets
+          $sanitizedOwners = array_map('sanitizeArrayForGoogleSheets', $toSheetOwners);
+          appendToGoogleSheet($sanitizedOwners, 'Propietarios');
      }
 
      setLastIdChecked($lastId);
@@ -119,6 +134,7 @@ function getProperty($data) {
      $id = $data['id'];
 
      $ownerNames = '';
+     $newOwners = [];
 
      if(!empty($data['internal_data']['property_owners'])) {
           foreach($data['internal_data']['property_owners'] as $key => $propertyOwner) {
@@ -127,6 +143,16 @@ function getProperty($data) {
                if($key < count($data['internal_data']['property_owners']) - 1) {
                     $ownerNames .= ', ';
                }
+
+               $newOwners[] = [
+                    date('m/d/Y H:i:00', strtotime($propertyOwner['created_at'])),
+                    urlForExcel("https://www.tokkobroker.com/contact/{$propertyOwner['id']}", $propertyOwner['id']),
+                    $propertyOwner['name'] ?? '',
+                    $propertyOwner['email'] ?? '',
+                    $propertyOwner['phone'] ?? '',
+                    $data['address'] ?? '',
+                    urlForExcel("https://www.tokkobroker.com/property/{$id}", $id),
+               ];
           }
      }
      
@@ -147,6 +173,7 @@ function getProperty($data) {
 
      return [
           "sheet" => $body,
+          "sheetOwners" => $newOwners,
           "page" => "Propiedades"
      ];
 }
@@ -162,4 +189,13 @@ function getLastIdChecked() {
 
 function setLastIdChecked($id) {   
      file_put_contents('last_prop_id', $id);
+}
+
+function sanitizeArrayForGoogleSheets($array) {
+     return array_map(function($value) {
+          if ($value === null) {
+               return '';
+          }
+          return $value;
+     }, $array);
 }

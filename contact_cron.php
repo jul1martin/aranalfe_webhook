@@ -72,9 +72,27 @@ function getContact($data) {
      if(!$data) return $body;
 
      $tags = [];
+
+     $tagsStatus = [
+          "venta" => FALSE,
+          "alquiler" => FALSE,
+          "tasación" => FALSE,
+          "consulta" => FALSE,
+          "web" => FALSE,
+          "zonaprop" => FALSE,
+          "mercadolibre" => FALSE,
+          "argenprop" => FALSE,
+     ];
+
      if (isset($data['tags']) && is_array($data['tags'])) {
           foreach ($data['tags'] as $tag) {
                $tags[] = $tag['name'];
+
+               $tag['name'] = strtolower($tag['name']);
+
+               if (isset($tagsStatus[$tag['name']])) {
+                    $tagsStatus[$tag['name']] = TRUE;
+               }
           }
      }
      $tags_string = implode(", ", $tags);
@@ -91,7 +109,7 @@ function getContact($data) {
      ];
 
      return [
-          "sheet" => $body,
+          "sheet" => array_merge($body, $tagsStatus),
           "page" => "Contactos"
      ];
 }

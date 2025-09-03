@@ -66,19 +66,57 @@ function appendToGoogleSheet($sheetData, $page) {
           ]);
 
           $service = new Google_Service_Sheets($client);
-          $range = "{$page}!A2";
+          
+          // Solo usar caché de filas para la página de Contactos (que tiene checkboxes)
+          if ($page === 'Contactos') {
+               $nextRow = getContactsNextRow();
+               $range = "{$page}!A{$nextRow}";
+               
+               $body = new Google_Service_Sheets_ValueRange([
+                    'values' => $sheetData
+               ]);
 
-          $body = new Google_Service_Sheets_ValueRange([
-               'values' => $sheetData
-          ]);
+               $params = ['valueInputOption' => 'USER_ENTERED'];
+               $service->spreadsheets_values->update($spreadsheetId, $range, $body, $params);
 
-          $params = ['valueInputOption' => 'USER_ENTERED'];
-          $service->spreadsheets_values->append($spreadsheetId, $range, $body, $params);
+               // Actualizar caché con la nueva última fila
+               updateContactsLastRow($nextRow + count($sheetData));
+               
+               echo "Se enviaron " . count($sheetData) . " datos a Google Sheets (Contactos) en la fila {$nextRow}\n";
+          } else {
+               // Para otras páginas (Propiedades, etc.) usar append normal
+               $range = "{$page}!A2";
+               
+               $body = new Google_Service_Sheets_ValueRange([
+                    'values' => $sheetData
+               ]);
 
-          echo "Se enviaron " . count($sheetData) . " datos a Google Sheets\n";
+               $params = ['valueInputOption' => 'USER_ENTERED'];
+               $service->spreadsheets_values->append($spreadsheetId, $range, $body, $params);
+               
+               echo "Se enviaron " . count($sheetData) . " datos a Google Sheets ({$page}) usando append\n";
+          }
 
           return true;
      } catch (Exception $e) {
           throw new Exception("Error al enviar datos a Google Sheets: " . $e->getMessage());
      }
+}
+
+function getContactsNextRow() {
+     $cacheFile = "last_contacts_row";
+     
+     // Si no existe el caché, empezar en fila 2
+     if (!file_exists($cacheFile)) {
+          file_put_contents($cacheFile, '2');
+          return 2;
+     }
+     
+     $lastRow = (int)file_get_contents($cacheFile);
+     return $lastRow > 1 ? $lastRow : 2; // Asegurar que nunca sea menor a 2
+}
+
+function updateContactsLastRow($newLastRow) {
+     $cacheFile = "last_contacts_row";
+     file_put_contents($cacheFile, $newLastRow);
 }
